@@ -249,8 +249,12 @@
         require([
             "esri/WebMap",
             "esri/views/MapView",
-            "esri/layers/FeatureLayer"
-        ], function(WebMap, MapView, FeatureLayer) {
+            "esri/layers/FeatureLayer",
+            "esri/widgets/Legend",
+            "esri/widgets/ScaleBar",
+            "esri/widgets/Compass",
+            "esri/widgets/Expand"
+        ], function(WebMap, MapView, FeatureLayer, Legend, ScaleBar, Compass, Expand) {
             
             // Load the web map
             const webmap = new WebMap({
@@ -263,11 +267,44 @@
             const view = new MapView({
                 container: "viewDiv",
                 map: webmap,
-                popup: null // Disable default popup
+                popup: null, // Disable default popup
+                constraints: {
+                    minZoom: 9,  // Prevent zooming out too far
+                    maxZoom: 17  // Prevent zooming in too close
+                }
             });
             
             view.when(function() {
                 document.getElementById("loading").style.display = "none";
+                
+                // Add Legend widget (card style - most compact)
+                const legend = new Legend({
+                    view: view,
+                    style: "card" // Most compact style available
+                });
+                
+                // Wrap legend in Expand widget (collapsible)
+                const legendExpand = new Expand({
+                    view: view,
+                    content: legend,
+                    expanded: false, // Closed by default
+                    expandIconClass: "esri-icon-layer-list",
+                    expandTooltip: "Legend"
+                });
+                view.ui.add(legendExpand, "top-right");
+                
+                // Add ScaleBar widget
+                const scaleBar = new ScaleBar({
+                    view: view,
+                    unit: "metric"
+                });
+                view.ui.add(scaleBar, "bottom-left");
+                
+                // Add Compass widget
+                const compass = new Compass({
+                    view: view
+                });
+                view.ui.add(compass, "top-left");
                 
                 // Get the interpretation locations layer
                 const interpretationLayer = webmap.layers.find(layer => 
@@ -276,6 +313,27 @@
                 
                 if (interpretationLayer) {
                     setupHoverEffect(interpretationLayer);
+                }
+                
+                // Zoom to Natura 2000 layer extent
+                const natura2000Layer = webmap.layers.find(layer => 
+                    layer.title && layer.title.includes("Natura 2000")
+                );
+                
+                if (natura2000Layer) {
+                    natura2000Layer.when(function() {
+                        // Query to get the extent of all features
+                        const query = natura2000Layer.createQuery();
+                        query.where = "1=1";
+                        query.returnGeometry = true;
+                        
+                        natura2000Layer.queryExtent(query).then(function(result) {
+                            if (result.extent) {
+                                // Zoom to extent with 10% padding
+                                view.goTo(result.extent.expand(1.1));
+                            }
+                        });
+                    });
                 }
             });
             

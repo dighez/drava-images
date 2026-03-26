@@ -344,6 +344,13 @@
             }
             
             function showPanel(attributes) {
+                console.log("🔍 DEBUG - All attributes:", attributes);
+                console.log("🔍 DEBUG - Point:", attributes.Point);
+                console.log("🔍 DEBUG - Type:", attributes.Type);
+                console.log("🔍 DEBUG - description:", attributes.description);
+                console.log("🔍 DEBUG - photo_url:", attributes.photo_url);
+                console.log("🔍 DEBUG - fid:", attributes.fid);
+                
                 const panel = document.getElementById("side-panel");
                 const content = document.getElementById("panel-content");
                 
@@ -368,10 +375,12 @@
                 // Construct GitHub raw URL
                 const photoUrl = `https://raw.githubusercontent.com/dighez/drava-images/main/LP_${String(fid).padStart(2, '0')}_${locationName}.jpg`;
                 
+                console.log("🔍 DEBUG - Constructed photoUrl:", photoUrl);
+                
                 content.innerHTML = `
                     <div class="type-badge type-${attributes.Type}">${typeName}</div>
                     <h2>${attributes.Point || 'Interpretation Location'}</h2>
-                    <img src="${photoUrl}" alt="${attributes.Point}" onerror="this.style.display='none'">
+                    <img src="${photoUrl}" alt="${attributes.Point}" onerror="console.error('Image failed to load:', this.src); this.style.display='none'">
                     <div class="description">${attributes.description || 'No description available.'}</div>
                 `;
                 

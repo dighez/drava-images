@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DravaBike - Cycling Through Nature</title>
+    
+    <!-- ArcGIS Maps SDK for JavaScript -->
+    <link rel="stylesheet" href="https://js.arcgis.com/4.28/esri/themes/light/main.css">
+    <script src="https://js.arcgis.com/4.28/"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        /* Header */
+        #header {
+            background: linear-gradient(135deg, #2C5F2D 0%, #4A7C59 100%);
+            color: white;
+            padding: 20px 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        #header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        #header p {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        
+        /* Main container */
+        #main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Map */
+        #viewDiv {
+            flex: 1;
+            position: relative;
+        }
+        
+        /* Side panel */
+        #side-panel {
+            width: 400px;
+            background: white;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            padding: 30px;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        #side-panel.active {
+            display: block;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        #side-panel .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            transition: color 0.2s;
+        }
+        
+        #side-panel .close-btn:hover {
+            color: #000;
+        }
+        
+        #side-panel .type-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+        
+        #side-panel .type-1 {
+            background: #2C5F2D;
+            color: white;
+        }
+        
+        #side-panel .type-2 {
+            background: #D4AF37;
+            color: white;
+        }
+        
+        #side-panel .type-3 {
+            background: #1E5A8E;
+            color: white;
+        }
+        
+        #side-panel h2 {
+            font-size: 24px;
+            color: #2C5F2D;
+            margin-bottom: 20px;
+            line-height: 1.3;
+        }
+        
+        #side-panel img {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        #side-panel .description {
+            font-size: 15px;
+            line-height: 1.7;
+            color: #444;
+        }
+        
+        /* Hover instruction */
+        #hover-instruction {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.95);
+            padding: 15px 30px;
+            border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            font-size: 14px;
+            color: #2C5F2D;
+            font-weight: 500;
+            z-index: 999;
+            animation: fadeIn 1s ease-out 1s both;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+        
+        /* Loading spinner */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            z-index: 1001;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2C5F2D;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            #side-panel {
+                width: 100%;
+                position: absolute;
+                top: 0;
+                right: 0;
+                height: 100%;
+                z-index: 1000;
+            }
+            
+            #header h1 {
+                font-size: 22px;
+            }
+            
+            #header {
+                padding: 15px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div id="header">
+        <h1>DravaBike - Cycling Through Nature</h1>
+        <p>Interactive map of interpretation locations along the Drava river corridor</p>
+    </div>
+    
+    <!-- Main container -->
+    <div id="main-container">
+        <!-- Map -->
+        <div id="viewDiv">
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Loading map...</p>
+            </div>
+        </div>
+        
+        <!-- Side panel -->
+        <div id="side-panel">
+            <button class="close-btn" onclick="closePanel()">&times;</button>
+            <div id="panel-content"></div>
+        </div>
+        
+        <!-- Hover instruction -->
+        <div id="hover-instruction">
+            💡 Hover over or click interpretation locations to explore
+        </div>
+    </div>
+    
+    <script>
+        require([
+            "esri/WebMap",
+            "esri/views/MapView",
+            "esri/layers/FeatureLayer"
+        ], function(WebMap, MapView, FeatureLayer) {
+            
+            // Load the web map
+            const webmap = new WebMap({
+                portalItem: {
+                    id: "9fbc757c6ceb4ea4b39b96ffc47b4ea9"
+                }
+            });
+            
+            // Create map view
+            const view = new MapView({
+                container: "viewDiv",
+                map: webmap,
+                popup: null // Disable default popup
+            });
+            
+            view.when(function() {
+                document.getElementById("loading").style.display = "none";
+                
+                // Get the interpretation locations layer
+                const interpretationLayer = webmap.layers.find(layer => 
+                    layer.title && layer.title.includes("Interpretation")
+                );
+                
+                if (interpretationLayer) {
+                    setupHoverEffect(interpretationLayer);
+                }
+            });
+            
+            let highlight;
+            let currentFeature = null;
+            
+            function setupHoverEffect(layer) {
+                // Hover effect
+                view.on("pointer-move", function(event) {
+                    view.hitTest(event).then(function(response) {
+                        const results = response.results.filter(result => 
+                            result.graphic.layer === layer
+                        );
+                        
+                        if (results.length > 0) {
+                            const graphic = results[0].graphic;
+                            
+                            // Change cursor
+                            document.getElementById("viewDiv").style.cursor = "pointer";
+                            
+                            // Highlight feature
+                            if (highlight) {
+                                highlight.remove();
+                            }
+                            view.whenLayerView(layer).then(function(layerView) {
+                                highlight = layerView.highlight(graphic);
+                            });
+                            
+                            // Show panel after short delay (hover)
+                            if (currentFeature !== graphic.attributes.fid) {
+                                currentFeature = graphic.attributes.fid;
+                                setTimeout(() => {
+                                    if (currentFeature === graphic.attributes.fid) {
+                                        showPanel(graphic.attributes);
+                                    }
+                                }, 300);
+                            }
+                        } else {
+                            document.getElementById("viewDiv").style.cursor = "default";
+                            if (highlight) {
+                                highlight.remove();
+                            }
+                        }
+                    });
+                });
+                
+                // Click effect
+                view.on("click", function(event) {
+                    view.hitTest(event).then(function(response) {
+                        const results = response.results.filter(result => 
+                            result.graphic.layer === layer
+                        );
+                        
+                        if (results.length > 0) {
+                            const graphic = results[0].graphic;
+                            showPanel(graphic.attributes);
+                            
+                            // Zoom to feature
+                            view.goTo({
+                                target: graphic.geometry,
+                                zoom: 14
+                            });
+                        }
+                    });
+                });
+            }
+            
+            function showPanel(attributes) {
+                const panel = document.getElementById("side-panel");
+                const content = document.getElementById("panel-content");
+                
+                const typeLabels = {
+                    1: "Interpretation Center",
+                    2: "Interpretation Polygon",
+                    3: "Interpretation Point"
+                };
+                
+                const typeName = typeLabels[attributes.Type] || "Location";
+                
+                content.innerHTML = `
+                    <div class="type-badge type-${attributes.Type}">${typeName}</div>
+                    <h2>${attributes.Point || 'Interpretation Location'}</h2>
+                    ${attributes.photo_url ? `<img src="${attributes.photo_url}" alt="${attributes.Point}">` : ''}
+                    <div class="description">${attributes.description || 'No description available.'}</div>
+                `;
+                
+                panel.classList.add("active");
+                
+                // Hide instruction after first interaction
+                document.getElementById("hover-instruction").style.display = "none";
+            }
+            
+            window.closePanel = function() {
+                document.getElementById("side-panel").classList.remove("active");
+                currentFeature = null;
+            }
+        });
+    </script>
+</body>
+</html>

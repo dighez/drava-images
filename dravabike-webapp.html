@@ -283,6 +283,9 @@
             let currentFeature = null;
             
             function setupHoverEffect(layer) {
+                // Set outFields to get all attributes
+                layer.outFields = ["*"];
+                
                 // Hover effect
                 view.on("pointer-move", function(event) {
                     view.hitTest(event).then(function(response) {
@@ -304,15 +307,28 @@
                                 highlight = layerView.highlight(graphic);
                             });
                             
-                            // Show panel after short delay (hover)
-                            if (currentFeature !== graphic.attributes.fid) {
-                                currentFeature = graphic.attributes.fid;
-                                setTimeout(() => {
-                                    if (currentFeature === graphic.attributes.fid) {
-                                        showPanel(graphic.attributes);
+                            // Query full attributes
+                            const objectId = graphic.attributes[layer.objectIdField];
+                            const query = layer.createQuery();
+                            query.where = `${layer.objectIdField} = ${objectId}`;
+                            query.outFields = ["*"];
+                            query.returnGeometry = false;
+                            
+                            layer.queryFeatures(query).then(function(result) {
+                                if (result.features.length > 0) {
+                                    const fullAttributes = result.features[0].attributes;
+                                    
+                                    // Show panel after short delay (hover)
+                                    if (currentFeature !== fullAttributes.fid) {
+                                        currentFeature = fullAttributes.fid;
+                                        setTimeout(() => {
+                                            if (currentFeature === fullAttributes.fid) {
+                                                showPanel(fullAttributes);
+                                            }
+                                        }, 300);
                                     }
-                                }, 300);
-                            }
+                                }
+                            });
                         } else {
                             document.getElementById("viewDiv").style.cursor = "default";
                             if (highlight) {
@@ -331,12 +347,24 @@
                         
                         if (results.length > 0) {
                             const graphic = results[0].graphic;
-                            showPanel(graphic.attributes);
                             
-                            // Zoom to feature
-                            view.goTo({
-                                target: graphic.geometry,
-                                zoom: 14
+                            // Query full attributes
+                            const objectId = graphic.attributes[layer.objectIdField];
+                            const query = layer.createQuery();
+                            query.where = `${layer.objectIdField} = ${objectId}`;
+                            query.outFields = ["*"];
+                            query.returnGeometry = false;
+                            
+                            layer.queryFeatures(query).then(function(result) {
+                                if (result.features.length > 0) {
+                                    showPanel(result.features[0].attributes);
+                                    
+                                    // Zoom to feature
+                                    view.goTo({
+                                        target: graphic.geometry,
+                                        zoom: 14
+                                    });
+                                }
                             });
                         }
                     });

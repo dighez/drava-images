@@ -390,18 +390,26 @@
                 
                 const typeName = typeLabels[attributes.Type] || "Location";
                 
-                // Construct photo URL based on Point field name
-                const pointName = attributes.Point || '';
-                // Extract location name from "Interpretation point - Location name" format
-                const locationName = pointName
-                    .replace(/^Interpretation (point|polygon|center) - /i, '')
-                    .replace(/ /g, '_');
+                // Direct FID to filename mapping
+                const photoFilenames = {
+                    1: "LP_01_Miklavski_potok.jpg",
+                    2: "LP_02_Duplek.jpg",
+                    3: "LP_03_Vurberg.jpg",
+                    4: "LP_04_Zlatolicje.jpg",
+                    5: "LP_05_Hajdina.jpg",
+                    6: "LP_06_Ptuj.jpg",
+                    7: "LP_07_Izliv_Pesnice.jpg",
+                    8: "LP_08_Muretinci.jpg",
+                    9: "LP_09_Ormoske_lagune.jpg",
+                    10: "LP_10_Ormoske_lagune_area.jpg",
+                    11: "LP_11_Sredisce_ob_Dravi.jpg",
+                    12: "LP_12_Sredisce_ob_Dravi_area.jpg",
+                    13: "LP_13_Limbusko_nabrezje.jpg"
+                };
                 
-                // Get FID for filename
                 const fid = attributes.fid || attributes.FID || attributes.OBJECTID || 1;
-                
-                // Construct GitHub raw URL
-                const photoUrl = `https://raw.githubusercontent.com/dighez/drava-images/main/LP_${String(fid).padStart(2, '0')}_${locationName}.jpg`;
+                const filename = photoFilenames[fid] || `LP_${String(fid).padStart(2, '0')}.jpg`;
+                const photoUrl = `https://raw.githubusercontent.com/dighez/drava-images/main/${filename}`;
                 
                 console.log("🔍 DEBUG - Constructed photoUrl:", photoUrl);
                 
